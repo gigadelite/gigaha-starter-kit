@@ -1,0 +1,26 @@
+household: {name: Big Family, dry_run: true}
+people:
+  - {id: pat, name: Pat, role: admin, phone: pat_iphone, earn_to: {tv: 100}, work_hours: {days: [mon, wed, fri], start: "08:30", end: "16:30"}}
+  - {id: chris, name: Chris, role: admin, phone: chris_iphone, earn_to: {tv: 50, switch: 50}}
+  - {id: ava, name: Ava, role: child, phone: ava_iphone, earn_to: {switch: 60, kids_tv: 40}, notify_parents: true}
+  - {id: ben, name: Ben, role: child, tracking: manual, earn_to: {switch: 100}}
+  - {id: cleo, name: "Cleo O'Neil", role: child, tracking: manual, earn_to: {kids_tv: 100}}
+  - {id: gran, name: Gran, role: member, tracking: manual, phone: gran_ipad, earn_to: {tv: 100}}
+screens:
+  - id: switch
+    name: Switch
+    type: nintendo_switch
+    entities: {limit: number.family_switch_max_screentime_today, suspend: switch.family_switch_suspend_software, used: sensor.family_switch_used_screen_time}
+    free_minutes: 30
+  - id: tv
+    name: Living Room TV
+    type: apple_tv
+    entities: {media_player: media_player.living_room}
+    exempt_apps: [Sling, YouTube Kids]
+  - id: kids_tv
+    name: Playroom TV
+    type: apple_tv
+    entities: {media_player: media_player.playroom}
+    free_minutes: 60
+    bank_cap: 240
+motivator: {weekly_tokens: 2, streak_bonus: [15, 30, 45]}

@@ -1,0 +1,9 @@
+{
+  "domain": "kit_probe",
+  "name": "Kit probe (tests only)",
+  "version": "0.1.0",
+  "documentation": "https://example.invalid",
+  "codeowners": [],
+  "dependencies": ["local_calendar", "automation", "script"],
+  "requirements": []
+}

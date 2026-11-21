@@ -1,0 +1,8 @@
+household: {name: Solo Flat, dry_run: false}
+people:
+  - {id: jordan, name: Jordan, role: admin, tracking: phone, phone: jordan_phone}
+screens:
+  - id: switch
+    name: Switch
+    type: nintendo_switch
+    entities: {limit: number.switch_max_screentime_today, suspend: switch.switch_suspend_software, used: sensor.switch_used_screen_time}

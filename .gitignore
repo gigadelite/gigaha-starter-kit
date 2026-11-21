@@ -1,0 +1,6 @@
+# Your household file holds your names and device IDs: keep it out of git
+household.yaml
+out/
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,125 @@
+# household.yaml — the only file you edit.
+# Copy this to household.yaml, change it, then run:  python3 build.py
+# The generated Home Assistant config lands in out/config/.
+#
+# Anything you leave out falls back to the defaults shown here.
+
+household:
+  name: The Example House
+  # Dry run: the Motivator does all the math and logs what it WOULD do, but never
+  # changes a console limit or turns off a TV. Leave this on until you trust it,
+  # and on any test server that shares devices with a real one.
+  dry_run: true
+
+# ---------------------------------------------------------------------------
+# People. One entry per person. Any number of people.
+#   id        short lowercase slug, used in entity IDs (sensor.<id>_earned_today). Never change it later.
+#   name      shown on dashboards and in notifications
+#   role      admin  = full access (Settings dashboard, quick add/remove, resets)
+#             member = everything except Settings
+#             child  = same as member; notifications can also go to the parents
+#   tracking  phone  = Apple Health steps + exercise minutes from the HA companion app
+#             manual = logs exercise by hand (watch-only kids, no phone, or no Health data)
+#   phone     the companion app device name: notify.mobile_app_<phone>, sensor.<phone>_health_steps
+#             Optional for manual people (they still get notifications if set).
+#   earn_to   where this person's earned minutes go, in percent per screen (must add up to 100)
+#   bonus_to  which screen gets their streak bonuses and Chore Challenge prize (default: biggest share)
+#   notify_parents  child only: also send their notifications to every admin (default: true when no phone)
+#   work_hours      optional: Apple Health exercise inside these hours doesn't count (e.g. walking at work).
+#                   Each person gets a "count it anyway" switch on the Settings dashboard.
+#   health_sensors  optional overrides if the companion app named the sensors differently
+# ---------------------------------------------------------------------------
+people:
+  - id: alex
+    name: Alex
+    role: admin
+    tracking: phone
+    phone: alex_iphone
+    earn_to: {switch: 50, tv: 50}
+    bonus_to: switch
+    work_hours: {days: [mon, tue, wed, thu, fri], start: "09:00", end: "17:00"}
+
+  - id: sam
+    name: Sam
+    role: admin
+    tracking: phone
+    phone: sam_iphone
+    earn_to: {tv: 100}
+
+  - id: riley
+    name: Riley
+    role: child
+    tracking: manual          # Apple Watch via Family Setup: log by hand for now
+    earn_to: {switch: 70, tv: 30}
+
+# ---------------------------------------------------------------------------
+# Screens: the devices that spend earned time. Each has its own bank.
+#   type nintendo_switch: needs the "Nintendo Switch Parental Controls" integration
+#   type apple_tv:        needs the "Apple TV" integration
+#   exempt_apps (apple_tv): apps that never count (e.g. live TV)
+# Entity IDs: find them in Settings > Devices after adding the integration.
+# ---------------------------------------------------------------------------
+screens:
+  - id: switch
+    name: Switch
+    type: nintendo_switch
+    icon: mdi:nintendo-switch
+    entities:
+      limit: number.living_room_switch_max_screentime_today
+      suspend: switch.living_room_switch_suspend_software
+      used: sensor.living_room_switch_used_screen_time
+    free_minutes: 0           # free time per day before the bank is used (0 = off)
+    bank_cap: 180             # regular bank cap in minutes (bonus minutes are never capped)
+
+  - id: tv
+    name: Apple TV
+    type: apple_tv
+    icon: mdi:television
+    entities:
+      media_player: media_player.living_room
+    exempt_apps: []           # e.g. [Sling] - matched anywhere in the app name, any case
+    free_minutes: 90
+    bank_cap: 180
+
+# ---------------------------------------------------------------------------
+# Motivator rules (defaults shown)
+# ---------------------------------------------------------------------------
+motivator:
+  steps_per_minute: 200          # 200 steps = 1 earned minute (5 min per 1,000)
+  active_day_minutes: 30         # exercise + chores needed for a day to count
+  credits_per_week: 5            # active days + tokens needed for a successful week
+  weekly_tokens: 1               # free "skip day" tokens per person per week (use it or lose it)
+  streak_bonus: [30, 60, 90, 120]  # bonus for weeks 1-4 of a streak
+  streak_bonus_after: 60         # each week after that
+  streak_bonus_every_4th: 120    # weeks 8, 12, 16...
+  challenge_prize_minutes: 60    # Chore Challenge "bonus" prize
+  challenge_pick_hours: 20       # winner has this long to pick a prize; then the bonus is applied
+
+# Chores: name and default minutes (pre-filled when picked; editable before logging)
+chores:
+  - {name: Dishes, minutes: 15}
+  - {name: Clean kitchen, minutes: 30}
+  - {name: Clean bathroom, minutes: 30}
+  - {name: Sweep / vacuum, minutes: 20}
+  - {name: Mop floors, minutes: 20}
+  - {name: Laundry (wash/dry), minutes: 15}
+  - {name: Fold / put away laundry, minutes: 15}
+  - {name: Tidy / declutter, minutes: 15}
+  - {name: Dust / wipe surfaces, minutes: 15}
+  - {name: Change bed sheets, minutes: 10}
+  - {name: Trash / recycling, minutes: 5}
+  - {name: Cook a meal, minutes: 30}
+  - {name: Meal prep, minutes: 45}
+  - {name: Grocery shopping, minutes: 45}
+  - {name: Mow lawn, minutes: 45}
+  - {name: Yard work / weeding, minutes: 30}
+  - {name: Feed / walk pets, minutes: 15}
+  - {name: Homework help, minutes: 30}
+  - {name: Errands, minutes: 30}
+  - {name: Other, minutes: 15}
+
+exercise_types: [Walk, Bike, Run, Swim, Strength / Workout, Yoga / Stretch, Sports / Play, Other]
+
+# Which modules to build. Only "motivator" exists in this release; the rest are coming.
+modules:
+  motivator: true
