@@ -5,12 +5,22 @@ A Home Assistant setup you generate from one file. Describe your household in `h
 `/config`: packages, dashboards and themes, with nobody's personal details baked in.
 
 The first module is **The Motivator**: screen time has to be earned. Exercise, chores and
-steps earn minutes into a bank for each screen (a Nintendo Switch, an Apple TV), and Home
-Assistant spends from it: it sets the Switch's daily limit and puts the Apple TV to sleep when time
-runs out.
+steps earn minutes into a bank for each screen, and Home Assistant spends from it: it sets a
+Switch's daily limit, and turns off an Apple TV, Xbox or PlayStation when time runs out.
 
-> **Status: 0.1, beta.** The Motivator core is built and tested on a real (headless) Home Assistant
-> 2026.2 with 1-, 3- and 6-person households. The dashboards use only built-in cards and haven't been
+| Screen type | Counts time from | When time runs out | Needs |
+|---|---|---|---|
+| `nintendo_switch` | the console's own play time | console limit is set to what's left | Nintendo Switch Parental Controls integration |
+| `apple_tv` | any app open | pause, then sleep | Apple TV integration |
+| `xbox` | any game/app running | pause, then turn off (`remote`) | Xbox integration + Remote features on the console |
+| `playstation` | now playing (polled every 30 s) | rest mode (`power`), or a warning if no `power` set | PlayStation Network integration; PS5-MQTT add-on for `power` |
+
+Xbox and PlayStation don't let HA change their own family time limits, so the kit enforces by
+turning the console off. Time used past zero on a warning-only screen is noted in Bank History.
+
+> **Status: 0.2, beta.** The Motivator core is built and tested on a real (headless) Home Assistant
+> 2026.2 with 1-, 2-, 3- and 6-person households and all four screen types (consoles simulated:
+> no real Xbox or PlayStation has run it yet). The dashboards use only built-in cards and haven't been
 > looked at in a browser yet. Start with `dry_run: true`.
 
 ## How it works
@@ -77,7 +87,7 @@ build.py                   # the generator
 kit/templates/             # package templates (build-time tags are << >> and <% %>; {{ }} is left for HA)
 kit/dashboards.py          # dashboard builders (core cards only)
 kit/themes/                # Copper Canyon, Ironworks
-tests/households/          # 1-, 3- and 6-person test households
+tests/households/          # test households (solo, example, family of 6, every console type live)
 tools/check.sh             # build every test household, run HA's config check, scan for leaks
 tools/smoke_test.py        # boot real HA on each test household and run the Motivator through a scenario
 tools/leakscan.py          # fails if anything personal leaks in (names are stored only as hashes)

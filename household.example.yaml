@@ -54,9 +54,13 @@ people:
 
 # ---------------------------------------------------------------------------
 # Screens: the devices that spend earned time. Each has its own bank.
-#   type nintendo_switch: needs the "Nintendo Switch Parental Controls" integration
-#   type apple_tv:        needs the "Apple TV" integration
-#   exempt_apps (apple_tv): apps that never count (e.g. live TV)
+#   type nintendo_switch  "Nintendo Switch Parental Controls" integration. HA sets the console's daily limit.
+#   type apple_tv         "Apple TV" integration. Counts while an app is open; pauses + sleeps when out.
+#   type xbox             "Xbox" integration (turn on Remote features on the console). Counts while a game/app
+#                         is running; pauses + turns off through entities.remote when out.
+#   type playstation      "PlayStation Network" integration for counting. Optional entities.power: the
+#                         rest-mode switch from the PS5-MQTT add-on. Without it: a time's-up warning only.
+#   exempt_apps (all but Switch): apps that never count, matched anywhere in the name, any case.
 # Entity IDs: find them in Settings > Devices after adding the integration.
 # ---------------------------------------------------------------------------
 screens:
@@ -80,6 +84,22 @@ screens:
     exempt_apps: []           # e.g. [Sling] - matched anywhere in the app name, any case
     free_minutes: 90
     bank_cap: 180
+
+  # More examples (uncomment and add to people's earn_to):
+  # - id: xbox
+  #   name: Xbox
+  #   type: xbox
+  #   entities:
+  #     media_player: media_player.xbox_series_x
+  #     remote: remote.xbox_series_x          # optional: without it, warn only
+  #   exempt_apps: [Netflix]
+  #
+  # - id: ps5
+  #   name: PS5
+  #   type: playstation
+  #   entities:
+  #     media_player: media_player.playstation_5   # from PlayStation Network
+  #     power: switch.ps5_power                    # optional, from the PS5-MQTT add-on
 
 # ---------------------------------------------------------------------------
 # Motivator rules (defaults shown)

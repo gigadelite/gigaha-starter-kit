@@ -29,14 +29,25 @@ KIT = ROOT / "kit"
 sys.path.insert(0, str(KIT))
 import dashboards  # noqa: E402  (kit/dashboards.py)
 
-KIT_VERSION = "0.1.0"
+KIT_VERSION = "0.2.0"
 UID = "gigaha"  # prefix for every unique_id / automation id the kit creates
 
 ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,30}$")
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+# type: (required entities, optional entities)
 SCREEN_TYPES = {
-    "nintendo_switch": ["limit", "suspend", "used"],
-    "apple_tv": ["media_player"],
+    "nintendo_switch": (["limit", "suspend", "used"], []),
+    "apple_tv": (["media_player"], []),
+    "xbox": (["media_player"], ["remote"]),
+    "playstation": (["media_player"], ["power"]),
+}
+MEDIA = {  # how media-player screens are read and turned off
+    "apple_tv": {"icon": "mdi:television", "on_states": ["playing", "paused", "idle", "on"], "app_attrs": ["app_name"],
+                 "off_key": "media_player", "off_how": "pause and put the Apple TV to sleep"},
+    "xbox": {"icon": "mdi:microsoft-xbox", "on_states": ["playing", "paused", "idle", "on"],
+             "app_attrs": ["app_name", "media_title"], "off_key": "remote", "off_how": "pause and turn the Xbox off"},
+    "playstation": {"icon": "mdi:sony-playstation", "on_states": ["playing", "paused", "on"],
+                    "app_attrs": ["app_name", "media_title"], "off_key": "power", "off_how": "put the PlayStation in rest mode"},
 }
 ROLES = ("admin", "member", "child")
 
@@ -109,12 +120,26 @@ def load(path: Path) -> dict:
         if s.get("type") not in SCREEN_TYPES:
             errors.append(f"{where}: type must be one of {', '.join(SCREEN_TYPES)}")
             continue
-        s.setdefault("icon", "mdi:nintendo-switch" if s["type"] == "nintendo_switch" else "mdi:television")
+        media = MEDIA.get(s["type"])
+        s.setdefault("icon", media["icon"] if media else "mdi:nintendo-switch")
         ents = s.get("entities") or {}
-        for k in SCREEN_TYPES[s["type"]]:
+        required, optional = SCREEN_TYPES[s["type"]]
+        for k in required:
             if not ents.get(k):
                 errors.append(f"{where}.entities: {k} is required for {s['type']}")
+        for k in ents:
+            if k not in required + optional:
+                errors.append(f"{where}.entities: {k!r} isn't used by {s['type']} (use {', '.join(required + optional)})")
         s["entities"] = ents
+        s["media"] = bool(media)
+        if media:
+            s["on_states"] = media["on_states"]
+            s["app_attrs"] = media["app_attrs"]
+            s["off_entity"] = ents.get(media["off_key"])
+            s["off_how"] = media["off_how"]
+        else:
+            s["off_entity"] = ents.get("suspend")
+            s["off_how"] = "lower the console's daily limit"
         s["exempt_apps"] = [str(a) for a in (s.get("exempt_apps") or [])]
         s["free_minutes"] = int(s.get("free_minutes", 0))
         s["bank_cap"] = int(s.get("bank_cap", 180))

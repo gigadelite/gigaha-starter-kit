@@ -60,7 +60,7 @@ input_number:
     mode: slider
     unit_of_measurement: min
 
-<% if s.type == 'apple_tv' %>
+<% if s.media %>
 sensor:
   - platform: history_stats
     name: "<< s.id >> counted hours today"   # name sets the entity ID: sensor.<< s.id >>_counted_hours_today
@@ -73,9 +73,10 @@ sensor:
 
 <% endif %>
 template:
-<% if s.type == 'apple_tv' %>
-  # Foreground app while the Apple TV is awake. Many apps misreport play/pause, so any
-  # foreground app counts while the box is on, except apps listed in exempt_apps.
+<% if s.media %>
+  # What's running while the << s.name >> is on (<< s.app_attrs | join(' or ') >> from << s.entities.media_player >>).
+  # Many apps misreport play/pause, so anything running counts while it's on, except exempt_apps.
+  # Nothing running (e.g. the home screen with no title) doesn't count.
   - sensor:
       - name: "<< s.name >> active app"
         unique_id: << uid >>_<< s.id >>_active_app
@@ -83,8 +84,8 @@ template:
         icon: mdi:television-play
         state: >
           {% set mp = '<< s.entities.media_player >>' %}
-          {% set app = state_attr(mp, 'app_name') %}
-          {{ app if states(mp) in ['playing', 'paused', 'idle', 'on'] and app else 'idle' }}
+          {% set app = <% for a in s.app_attrs %>state_attr(mp, '<< a >>')<% if not loop.last %> or <% endif %><% endfor %> %}
+          {{ app if states(mp) in << s.on_states | tojson >> and app else 'idle' }}
   - binary_sensor:
       - name: "<< s.name >> counted playing"
         unique_id: << uid >>_<< s.id >>_counted_playing
@@ -312,9 +313,14 @@ automation:
           entity_id: << s.entities.suspend >>
 <% endif %>
 <% else %>
-  # Out of time while something counted is playing: pause and put the box to sleep
+<% if s.off_entity %>
+  # Out of time while something counted is playing: << s.off_how >>
+<% else %>
+  # Out of time while something counted is playing: warn (no off switch configured for this screen).
+  # Time past zero is logged in Bank History at the nightly rollover.
+<% endif %>
   - id: << uid >>_<< s.id >>_gate_enforce
-    alias: "<< s.name >>: sleep when out of time"
+    alias: "<< s.name >>: << 'turn off' if s.off_entity else 'warn' >> when out of time"
     mode: single
     triggers:
       - trigger: state
@@ -323,7 +329,7 @@ automation:
       - trigger: numeric_state
         entity_id: sensor.<< s.id >>_minutes_left
         below: 1
-<% if not dry_run %>
+<% if not dry_run and s.off_entity %>
       - trigger: time_pattern
         minutes: "/2"
 <% endif %>
@@ -342,22 +348,41 @@ automation:
       - action: logbook.log
         data:
           name: "<< s.name >> (dry run)"
-          message: "out of time: would pause {{ states('sensor.<< s.id >>_active_app') }} and turn the << s.name >> off"
+          message: "out of time: {{ states('sensor.<< s.id >>_active_app') }} is running; would << s.off_how if s.off_entity else 'warn that time is up' >>"
           entity_id: sensor.<< s.id >>_minutes_left
 <% else %>
-      - action: media_player.media_pause
-        target:
-          entity_id: << s.entities.media_player >>
-        continue_on_error: true
-      - delay: "00:00:02"
-      - action: media_player.turn_off
-        target:
-          entity_id: << s.entities.media_player >>
+<% if s.off_entity %>
+      # Skip quietly if the off switch's integration isn't set up yet
+      - if:
+          - condition: template
+            value_template: "{{ states('<< s.off_entity >>') not in ['unknown', 'unavailable'] }}"
+        then:
+<% if s.type in ['apple_tv', 'xbox'] %>
+          - action: media_player.media_pause
+            target:
+              entity_id: << s.entities.media_player >>
+            continue_on_error: true
+          - delay: "00:00:02"
+<% endif %>
+<% if s.type == 'apple_tv' %>
+          - action: media_player.turn_off
+            target:
+              entity_id: << s.off_entity >>
+<% elif s.type == 'xbox' %>
+          - action: remote.turn_off
+            target:
+              entity_id: << s.off_entity >>
+<% else %>
+          - action: switch.turn_off
+            target:
+              entity_id: << s.off_entity >>
+<% endif %>
+<% endif %>
       - action: script.motivator_notify
         data:
           who: << s.earner_ids | tojson >>
           title: "<< s.name >> time's up"
-          message: "Free time and the << s.name >> bank are both used up. Exercise or do a chore to earn more."
+          message: "Free time and the << s.name >> bank are both used up<% if not s.off_entity %>, so please stop playing. Extra time shows up in Bank History<% endif %>. Exercise or do a chore to earn more."
           view: home
 <% endif %>
 
@@ -383,6 +408,7 @@ automation:
           message: "Bank: {{ [states('sensor.<< s.id >>_available') | int(0), 0] | max }} min. Free time left: {{ states('sensor.<< s.id >>_free_left') }} min."
           view: home
 
+<% if s.type == 'apple_tv' %>
   # Self-heal: reconnect if unavailable 3+ min, nightly at 4 AM, and 1 min after waking
   # (catches the integration reporting a stale app). Never sends on/off.
   - id: << uid >>_<< s.id >>_reconnect
@@ -407,4 +433,5 @@ automation:
     actions:
       - action: script.<< s.id >>_reconnect
       - delay: "00:01:00"
+<% endif %>
 <% endif %>

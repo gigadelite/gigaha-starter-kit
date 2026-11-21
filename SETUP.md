@@ -16,6 +16,13 @@ lived-in server comes later; the build refuses to write into a `/config` it didn
    - **Nintendo Switch Parental Controls** for each Switch. Note the entity IDs of its
      *max screen time today* number, *suspend software* switch and *used screen time* sensor.
    - **Apple TV** for each Apple TV. Note the media player entity ID.
+   - **Xbox** for each Xbox. On the console first: Settings › Devices & connections › Remote features
+     › on. Note the media player and remote entity IDs. (If they don't appear, reload the integration.)
+   - **PlayStation Network** for each PlayStation (sign in with an NPSSO token, ideally from a private
+     browser window). **Don't log out of playstation.com afterwards:** that cancels the token and HA
+     loses the console within a week. Note the console's media player entity ID.
+     To let HA put a PS5 or PS4 in rest mode, also install the **PS5-MQTT** add-on (needs MQTT) and note
+     its power switch. Without it, a PlayStation gets a time's-up warning instead.
 
 ## 2. Build
 
@@ -67,3 +74,7 @@ changing it starts that person over.
 - Anyone can log for anyone in Log Activity; the calendars are the audit trail.
 - Week runs Sunday–Saturday (not configurable yet).
 - The Switch limit is pushed every 5 minutes, so a game can run up to 5 minutes past a top-up being removed.
+- Xbox and PlayStation are enforced by turning the console off (rest mode on PlayStation), not by
+  their own family limits. A game may not save first, so the 15-minute warning matters.
+- PlayStation time is polled every 30 seconds, so it can be up to a minute off.
+- On every media screen, the home screen with nothing running doesn't count.

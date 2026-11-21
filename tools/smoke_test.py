@@ -29,7 +29,7 @@ def scenario(cfg):
     a = people[0]
     k = next((p for p in people if p["tracking"] == "manual"), people[-1])
     s0 = screens[0]
-    steps = [
+    steps = media_steps(cfg) + [
         {"do": "set", "entity": "input_select.motivator_who", "value": a["name"]},
         {"do": "set", "entity": "input_select.motivator_exercise_type", "value": cfg["exercise_types"][0]},
         {"do": "set", "entity": "input_number.motivator_exercise_minutes", "value": 45},
@@ -73,6 +73,37 @@ def scenario(cfg):
     return steps
 
 
+def media_steps(cfg):
+    """Fake each media screen playing with no time left; check counting, exemptions and the off action."""
+    steps = []
+    for s in cfg["screens"]:
+        if not s["media"]:
+            continue
+        sid, mp = s["id"], s["entities"]["media_player"]
+        attr = s["app_attrs"][-1]
+        if s["off_entity"]:
+            steps.append({"do": "state", "entity": s["off_entity"], "value": "on"})
+        steps += [
+            {"do": "call", "action": "input_boolean.turn_off", "data": {"entity_id": f"input_boolean.{sid}_free_enabled"},
+             "wait": 2, "expect": {f"sensor.{sid}_minutes_left": "0"}},
+            {"do": "calls_reset"},
+            {"do": "state", "entity": mp, "value": "playing", "attributes": {attr: "Space Racer"}, "wait": 4,
+             "expect": {f"sensor.{sid}_active_app": "Space Racer", f"binary_sensor.{sid}_counted_playing": "on"},
+             "check_off": None if cfg["dry_run"] else s["off_entity"], "screen": sid},
+        ]
+        if s["exempt_apps"]:
+            steps.append({"do": "state", "entity": mp, "value": "playing", "attributes": {attr: s["exempt_apps"][0] + " Live"},
+                          "wait": 2, "expect": {f"binary_sensor.{sid}_counted_playing": "off"}})
+        steps += [
+            {"do": "state", "entity": mp, "value": "on", "attributes": {}, "wait": 2,
+             "expect": {f"binary_sensor.{sid}_counted_playing": "off"}},
+            {"do": "state", "entity": mp, "value": "off", "attributes": {}, "wait": 1},
+            {"do": "call", "action": f"input_boolean.turn_{'on' if s['free_minutes'] > 0 else 'off'}",
+             "data": {"entity_id": f"input_boolean.{sid}_free_enabled"}},
+        ]
+    return steps
+
+
 def expected_screen_earned(cfg, earned):
     return {s["id"]: round(sum(earned.get(p["id"], 0) * p["earn_to"].get(s["id"], 0) / 100 for p in cfg["people"]), 1)
             for s in cfg["screens"]}
@@ -98,6 +129,13 @@ def run_one(hass: str, household: Path) -> list[str]:
         label = st["step"].get("action") or st["step"].get("id") or st["step"].get("entity")
         if not st.get("ok"):
             fails.append(f"{household.name}: {label}: {st.get('error')}")
+        if "check_off" in st["step"]:
+            off = st["step"]["check_off"]
+            offs = [c for c in st.get("calls", []) if c.split()[0] in ("remote.turn_off", "switch.turn_off", "media_player.turn_off")]
+            if off and not any(off in c for c in offs):
+                fails.append(f"{household.name}: {st['step']['screen']}: out of time but {off} wasn't turned off (calls: {st.get('calls')})")
+            if not off and offs:
+                fails.append(f"{household.name}: {st['step']['screen']}: turned something off without an off switch / in dry run: {offs}")
         for ent, want in st["expect"].items():
             got = st["states"].get(ent)
             if str(got) != str(want):

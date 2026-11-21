@@ -3,7 +3,7 @@ people:
   - {id: pat, name: Pat, role: admin, phone: pat_iphone, earn_to: {tv: 100}, work_hours: {days: [mon, wed, fri], start: "08:30", end: "16:30"}}
   - {id: chris, name: Chris, role: admin, phone: chris_iphone, earn_to: {tv: 50, switch: 50}}
   - {id: ava, name: Ava, role: child, phone: ava_iphone, earn_to: {switch: 60, kids_tv: 40}, notify_parents: true}
-  - {id: ben, name: Ben, role: child, tracking: manual, earn_to: {switch: 100}}
+  - {id: ben, name: Ben, role: child, tracking: manual, earn_to: {switch: 50, playroom_ps5: 50}}
   - {id: cleo, name: "Cleo O'Neil", role: child, tracking: manual, earn_to: {kids_tv: 100}}
   - {id: gran, name: Gran, role: member, tracking: manual, phone: gran_ipad, earn_to: {tv: 100}}
 screens:
@@ -23,4 +23,9 @@ screens:
     entities: {media_player: media_player.playroom}
     free_minutes: 60
     bank_cap: 240
+  - id: playroom_ps5
+    name: Playroom PS5
+    type: playstation
+    entities: {media_player: media_player.playroom_ps5, power: switch.playroom_ps5_power}
+    exempt_apps: [YouTube]
 motivator: {weekly_tokens: 2, streak_bonus: [15, 30, 45]}

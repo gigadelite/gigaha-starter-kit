@@ -232,8 +232,13 @@ def settings(cfg):
             cards.append(_tile(f"sensor.{sid}_play_limit", "Limit HA sends", "mdi:timer-lock"))
             cards.append(_tile(s["entities"]["limit"], "Limit on the console", "mdi:nintendo-switch"))
         else:
-            cards.append(_tile(f"sensor.{sid}_active_app", "Active app", "mdi:television-play"))
-            cards.append(_button("Reconnect", "mdi:refresh", f"script.{sid}_reconnect"))
+            cards.append(_tile(f"sensor.{sid}_active_app", "Running now", "mdi:play-box-outline"))
+            cards.append({"type": "markdown", "content":
+                          f"Out of time: **{s['off_how']}**." if s["off_entity"] else
+                          "Out of time: **warning only** (no off switch set in household.yaml). "
+                          "Time past zero shows in Bank History."})
+            if s["type"] == "apple_tv":
+                cards.append(_button("Reconnect", "mdi:refresh", f"script.{sid}_reconnect"))
         sections.append(_section(*cards))
     sections.append(_section(
         _heading("Add or remove time", "mdi:timer-plus-outline"),

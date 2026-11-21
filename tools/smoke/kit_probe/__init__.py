@@ -22,7 +22,15 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
     scenario = config.get(DOMAIN, {}).get("scenario", [])
 
     async def run(_event):
-        out = {"steps": [], "errors": []}
+        out = {"steps": [], "errors": [], "calls": []}
+
+        # Stand-ins for device actions the test server has no integration for: record the call instead
+        async def fake(call):
+            out["calls"].append({"action": f"{call.domain}.{call.service}", "data": dict(call.data)})
+        for dom, svc in (("remote", "turn_off"), ("switch", "turn_off"), ("switch", "turn_on"),
+                         ("media_player", "turn_off"), ("media_player", "media_pause"), ("number", "set_value")):
+            if not hass.services.has_service(dom, svc):
+                hass.services.async_register(dom, svc, fake)
         try:
             for name in ("Exercise Log", "Chore Log", "Bank History"):
                 flow = await hass.config_entries.flow.async_init("local_calendar", context={"source": "user"})
@@ -40,6 +48,10 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
                             await hass.services.async_call(domain, "set_value", {"entity_id": step["entity"], "value": step["value"]}, blocking=True)
                         else:
                             await hass.services.async_call(domain, "set_value", {"entity_id": step["entity"], "value": step["value"]}, blocking=True)
+                    elif step["do"] == "state":
+                        hass.states.async_set(step["entity"], step["value"], step.get("attributes", {}))
+                    elif step["do"] == "calls_reset":
+                        out["calls"].clear()
                     elif step["do"] == "call":
                         d, s = step["action"].split(".")
                         await hass.services.async_call(d, s, step.get("data", {}), blocking=True)
@@ -54,6 +66,7 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
                     rec["error"] = f"{type(err).__name__}: {err}"
                 rec["states"] = {e: (hass.states.get(e).state if hass.states.get(e) else None) for e in step.get("expect", {})}
                 rec["expect"] = step.get("expect", {})
+                rec["calls"] = [c["action"] + " " + str(c["data"].get("entity_id")) for c in out["calls"]]
                 out["steps"].append(rec)
             await asyncio.sleep(5)
             cal = await hass.services.async_call(

@@ -2,6 +2,19 @@
 
 ## 2026-11-21 (Saturday)
 
+### 0.2.0: Xbox and PlayStation
+- New screen types `xbox` (Xbox integration: counts any running game/app; pause + `remote.turn_off`
+  when out) and `playstation` (PlayStation Network for counting; optional PS5-MQTT `power` switch for
+  rest mode, otherwise a time's-up warning). Both support `exempt_apps`, dry run, the 15-minute warning,
+  and skip quietly until their integration exists. Apple TV now shares the same code path.
+- Nightly rollover notes "Went N min over" in Bank History when a screen ran past zero.
+- Settings dashboard shows what each screen does when time runs out.
+- `household.yaml` rejects unknown entity keys per screen type.
+- Tests: new `consoles` household (live, every screen type); `family6` gained a PS5. The smoke test now
+  fakes each console playing with no time left and checks counting, exempt apps and the exact off call
+  (none in dry run, none when no off switch). All four households pass. No real Xbox/PlayStation yet.
+- Apply: rebuild, copy `out/config/`, restart.
+
 ### 0.1.0: Motivator core
 - `household.yaml` schema: any number of people (admin/member/child; phone or manual tracking;
   per-screen earning split; bonus screen; optional work-hours exclusion; notify-parents routing),

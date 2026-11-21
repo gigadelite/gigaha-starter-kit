@@ -1,0 +1,29 @@
+# Live mode with every screen type: Xbox with its remote, a PlayStation with a rest-mode switch,
+# a PlayStation with no off switch (warn only), an Apple TV and a Switch.
+household: {name: Console Corner, dry_run: false}
+people:
+  - {id: morgan, name: Morgan, role: admin, phone: morgan_phone, earn_to: {xbox: 40, ps5: 20, ps4: 10, den_tv: 30}}
+  - {id: quinn, name: Quinn, role: child, tracking: manual, earn_to: {switch: 50, ps4: 50}}
+screens:
+  - id: xbox
+    name: Xbox
+    type: xbox
+    entities: {media_player: media_player.xbox_series_x, remote: remote.xbox_series_x}
+    exempt_apps: [Netflix]
+  - id: ps5
+    name: PS5
+    type: playstation
+    entities: {media_player: media_player.ps5_console, power: switch.ps5_power}
+    free_minutes: 30
+  - id: ps4
+    name: PS4
+    type: playstation
+    entities: {media_player: media_player.ps4_console}
+  - id: den_tv
+    name: Den TV
+    type: apple_tv
+    entities: {media_player: media_player.den}
+  - id: switch
+    name: Switch
+    type: nintendo_switch
+    entities: {limit: number.kids_switch_max_screentime_today, suspend: switch.kids_switch_suspend_software, used: sensor.kids_switch_used_screen_time}

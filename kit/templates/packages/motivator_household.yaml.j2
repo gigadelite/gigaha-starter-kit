@@ -683,7 +683,8 @@ automation:
       - variables:
           cap: "{{ states('input_number.<< s.id >>_bank_cap') | float(<< s.bank_cap >>) }}"
           was: "{{ (states('input_number.<< s.id >>_bank') | int(0)) + (states('input_number.<< s.id >>_bonus_bank') | int(0)) }}"
-          left: "{{ [states('sensor.<< s.id >>_available') | float(0), 0] | max }}"
+          raw: "{{ states('sensor.<< s.id >>_available') | float(0) }}"
+          left: "{{ [raw, 0] | max }}"
           new_bonus: "{{ [states('input_number.<< s.id >>_bonus_bank') | float(0), left] | min | int }}"
           new_reg: "{{ [[left - new_bonus, 0] | max, cap] | min | int }}"
           earned: "{{ states('sensor.<< s.id >>_earned_today') | float(0) | round(0) | int }}"
@@ -705,7 +706,7 @@ automation:
               summary: "<< s.name >> {{ was }} → {{ new_reg + new_bonus }} min"
               description: >-
                 Earned +{{ earned }}, spent past free time {{ spent }}.
-                Closing {{ new_reg }} regular{{ ' + ' ~ new_bonus ~ ' bonus' if new_bonus > 0 else '' }}{{ ' (cap ' ~ cap | int ~ ')' if left - new_bonus > cap else '' }}.
+                Closing {{ new_reg }} regular{{ ' + ' ~ new_bonus ~ ' bonus' if new_bonus > 0 else '' }}{{ ' (cap ' ~ cap | int ~ ')' if left - new_bonus > cap else '' }}.{{ ' Went ' ~ (0 - raw) | int ~ ' min over.' if raw < 0 else '' }}
               start_date: "{{ now().date() }}"
               end_date: "{{ (now() + timedelta(days=1)).date() }}"
 <% endfor %>
